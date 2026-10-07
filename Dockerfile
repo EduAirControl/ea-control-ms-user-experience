@@ -6,11 +6,11 @@ COPY pom.xml .
 COPY .mvn .mvn
 COPY mvnw .
 
-RUN ./mvnw dependency:go-offline
+RUN sed -i 's/\r$//' mvnw && bash mvnw dependency:go-offline
 
 COPY src src
 
-RUN ./mvnw clean package -DskipTests
+RUN sed -i 's/\r$//' mvnw && bash mvnw clean package -DskipTests
 
 FROM eclipse-temurin:17-jre
 
