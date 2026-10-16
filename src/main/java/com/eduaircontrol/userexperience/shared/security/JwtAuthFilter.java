@@ -5,7 +5,9 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,7 +18,14 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
- * Autentica contra el mismo JWT que el resto de servicios.
+ * Autentica contra los headers del gateway (trust-gateway-headers, ADR-016) o,
+ * en su defecto, contra el JWT compartido.
+ *
+ * <p>El orden importa y es el mismo que en ms-environment-monitoring: primero los
+ * headers internos del gateway, despues el Bearer. Si se invirtiera, el Bearer
+ * llegaria siempre (el gateway lo reenvia tal cual), fallaria al validarse como
+ * HS256 lo que en realidad es un token RS256 de ms-security, y el {@code return}
+ * se comeria la rama del gateway dejando la peticion sin autenticar.
  */
 @Component
 @RequiredArgsConstructor
@@ -31,26 +40,70 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
         final String authHeader = request.getHeader("Authorization");
 
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+        // 1. Headers del gateway (prioritario: el gateway ya valido el JWT y reenvia
+        //    el Authorization original, que aqui no se puede verificar por firma).
+        String gatewayUserId = request.getHeader("X-User-Id");
+        String gatewayRole = request.getHeader("X-User-Role");
+        if (gatewayUserId != null && !gatewayUserId.isBlank()) {
+            String email = request.getHeader("X-User-Email");
+            List<SimpleGrantedAuthority> authorities = new ArrayList<>();
+            addAuthorities(authorities, request.getHeader("X-User-Roles"), gatewayRole);
+            // Sin rol alguno se asume USER: por esta via no deben quedar peticiones
+            // con cero autoridades.
+            if (authorities.isEmpty()) {
+                authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
+            }
+            UsernamePasswordAuthenticationToken auth =
+                    new UsernamePasswordAuthenticationToken(
+                            email != null ? email : gatewayUserId,
+                            "gateway",
+                            authorities);
+            SecurityContextHolder.getContext().setAuthentication(auth);
             filterChain.doFilter(request, response);
             return;
         }
 
-        String token = authHeader.substring(7);
-        try {
-            String email = jwtService.extractEmail(token);
-            String role = jwtService.extractRole(token);
-
-            UsernamePasswordAuthenticationToken auth =
-                    new UsernamePasswordAuthenticationToken(
-                            email,
-                            token,
-                            List.of(new SimpleGrantedAuthority("ROLE_" + role)));
-            SecurityContextHolder.getContext().setAuthentication(auth);
-        } catch (Exception e) {
-            log.debug("Token invalido: {}", e.getMessage());
+        // 2. JWT Bearer, para llamadas directas al servicio.
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String token = authHeader.substring(7);
+            try {
+                JwtService.AuthenticatedUser user = jwtService.authenticate(token);
+                // El token se guarda como credencial: UserIdentityAdapter lo relee para
+                // resolver el userId cuando no llega por el header del gateway.
+                UsernamePasswordAuthenticationToken auth =
+                        new UsernamePasswordAuthenticationToken(
+                                user.email() != null ? user.email() : String.valueOf(user.userId()),
+                                token,
+                                user.roles().stream()
+                                        .map(r -> new SimpleGrantedAuthority("ROLE_" + r))
+                                        .toList());
+                SecurityContextHolder.getContext().setAuthentication(auth);
+            } catch (Exception e) {
+                log.debug("Token invalido: {}", e.getMessage());
+            }
         }
 
         filterChain.doFilter(request, response);
     }
+
+    /**
+     * El gateway manda todos los roles en {@code X-User-Roles} (coma-separados) y deja el
+     * primero en {@code X-User-Role} por compatibilidad. Con un usuario de varios roles el
+     * header simple bastaba para perder SUPER_ADMIN al cruzar el gateway.
+     */
+    private static void addAuthorities(List<SimpleGrantedAuthority> authorities,
+            String rolesHeader, String singleRole) {
+        if (rolesHeader != null && !rolesHeader.isBlank()) {
+            for (String r : rolesHeader.split(",")) {
+                if (!r.isBlank()) {
+                    authorities.add(new SimpleGrantedAuthority("ROLE_" + r.trim()));
+                }
+            }
+            return;
+        }
+        if (singleRole != null && !singleRole.isBlank()) {
+            authorities.add(new SimpleGrantedAuthority("ROLE_" + singleRole));
+        }
+    }
 }
+
