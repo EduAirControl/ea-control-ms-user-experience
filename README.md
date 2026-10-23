@@ -14,7 +14,8 @@ y busquedas. No posee usuarios, ambientes ni variables: los referencia por UUID.
 
 Requiere PostgreSQL en `localhost:5432` (BD `eduaircontrol_user_experience`). La
 autenticación usa RS256 vía el JWKS de `ms-security` (ADR-006): no hay secreto local,
-el token lo emite ms-security.
+el token lo emite ms-security. Las variables de entorno estan en `.env.example`
+(copia a `.env` y ajusta los valores).
 
 ```bash
 # local (necesita PostgreSQL con la BD eduaircontrol_user_experience)
