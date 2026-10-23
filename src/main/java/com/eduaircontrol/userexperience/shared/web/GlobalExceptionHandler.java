@@ -1,6 +1,7 @@
 package com.eduaircontrol.userexperience.shared.web;
 
 import com.eduaircontrol.userexperience.shared.exception.ConflictException;
+import com.eduaircontrol.userexperience.shared.exception.ForbiddenException;
 import com.eduaircontrol.userexperience.shared.exception.NotFoundException;
 import com.eduaircontrol.userexperience.shared.exception.ValidationException;
 import java.util.HashMap;
@@ -43,6 +44,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ValidationException.class)
     public ResponseEntity<Map<String, Object>> handleDomainValidation(ValidationException ex) {
         return body(HttpStatus.BAD_REQUEST.value(), ex.getMessage());
+    }
+
+    @ExceptionHandler(ForbiddenException.class)
+    public ResponseEntity<Map<String, Object>> handleForbidden(ForbiddenException ex) {
+        return body(HttpStatus.FORBIDDEN.value(), ex.getMessage());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
