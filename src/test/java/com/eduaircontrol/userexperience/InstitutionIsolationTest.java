@@ -9,7 +9,6 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers;
 import org.springframework.test.web.servlet.MockMvc;
@@ -18,7 +17,7 @@ import org.springframework.web.context.WebApplicationContext;
 
 /**
  * Aislamiento por institucion (ADR-016): un usuario solo puede marcar como
- * favorito o valorar ambientes de su institucion. La institucion del ambiente sale
+ * favorito de ambientes de su institucion. La institucion del ambiente sale
  * de la replica local alimentada por los eventos de classroom.
  */
 class InstitutionIsolationTest extends PostgresTestBase {
@@ -49,7 +48,6 @@ class InstitutionIsolationTest extends PostgresTestBase {
                 INSTITUTION_A, null);
 
         jdbc.update("DELETE FROM user_experience.favorites WHERE user_id = ?", userId);
-        jdbc.update("DELETE FROM user_experience.classroom_ratings WHERE user_id = ?", userId);
         jdbc.update("DELETE FROM user_experience.educational_environment "
                 + "WHERE educational_environment_id IN (?, ?)", ENV_A, ENV_B);
 
@@ -80,22 +78,4 @@ class InstitutionIsolationTest extends PostgresTestBase {
                 .andExpect(status().isForbidden());
     }
 
-    @Test
-    void canRateAnEnvironmentOfOwnInstitution() throws Exception {
-        mockMvc.perform(post("/api/v1/classrooms/{id}/ratings", ENV_A)
-                        .header("Authorization", "Bearer " + tokenInA)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"score\":5}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.score").value(5));
-    }
-
-    @Test
-    void cannotRateAnEnvironmentOfAnotherInstitution() throws Exception {
-        mockMvc.perform(post("/api/v1/classrooms/{id}/ratings", ENV_B)
-                        .header("Authorization", "Bearer " + tokenInA)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"score\":5}"))
-                .andExpect(status().isForbidden());
-    }
 }

@@ -1,0 +1,32 @@
+databaseChangeLog:
+  - changeSet:
+      id: 005-deprecate-ratings-and-search-history
+      author: eduaircontrol
+      comment: >-
+        Deprecates classroom ratings and search history. Preserve historical data
+        under legacy table names; these records are no longer read or written by
+        the service API.
+      changes:
+        - sql:
+            dbms: postgresql
+            sql: |
+              DROP INDEX IF EXISTS user_experience.ix_searches_searched_at;
+              DROP INDEX IF EXISTS user_experience.ix_searches_user_id;
+              DROP INDEX IF EXISTS user_experience.ix_classroom_ratings_classroom_id;
+              DROP INDEX IF EXISTS user_experience.ix_classroom_ratings_user_id;
+              ALTER TABLE user_experience.searches RENAME TO legacy_searches;
+              ALTER TABLE user_experience.classroom_ratings RENAME TO legacy_classroom_ratings;
+      rollback:
+        - sql:
+            dbms: postgresql
+            sql: |
+              ALTER TABLE user_experience.legacy_classroom_ratings RENAME TO classroom_ratings;
+              ALTER TABLE user_experience.legacy_searches RENAME TO searches;
+              CREATE INDEX ix_classroom_ratings_user_id
+                  ON user_experience.classroom_ratings (user_id);
+              CREATE INDEX ix_classroom_ratings_classroom_id
+                  ON user_experience.classroom_ratings (classroom_id);
+              CREATE INDEX ix_searches_user_id
+                  ON user_experience.searches (user_id);
+              CREATE INDEX ix_searches_searched_at
+                  ON user_experience.searches (searched_at DESC);
