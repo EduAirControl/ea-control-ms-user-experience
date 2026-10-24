@@ -1,5 +1,6 @@
 package com.eduaircontrol.userexperience.shared.security;
 
+import com.eduaircontrol.userexperience.shared.tenant.TenantContext;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -23,7 +24,9 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * no obtiene ninguna autoridad (SecurityConfig responde 401).
  *
  * <p>El token se guarda como credencial: {@link UserIdentityAdapter} lo relee
- * para resolver el userId y el email desde los claims.
+ * para resolver el userId y el email desde los claims. Ademas publica el tenant
+ * del token (institutionId/campusId) en {@link TenantContext} (ADR-016), que se
+ * limpia al terminar la peticion.
  */
 @Component
 @RequiredArgsConstructor
@@ -38,28 +41,33 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
-        final String authHeader = request.getHeader("Authorization");
-        if (authHeader == null || !authHeader.startsWith(BEARER)) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-        String token = authHeader.substring(BEARER.length());
         try {
-            JwtService.AuthenticatedUser user = jwtService.authenticate(token);
-            // El token se guarda como credencial: UserIdentityAdapter lo relee
-            // para resolver el userId y el email desde los claims.
-            UsernamePasswordAuthenticationToken auth =
-                    new UsernamePasswordAuthenticationToken(
-                            user.email() != null ? user.email() : String.valueOf(user.userId()),
-                            token,
-                            user.roles().stream()
-                                    .map(r -> new SimpleGrantedAuthority("ROLE_" + r))
-                                    .toList());
-            SecurityContextHolder.getContext().setAuthentication(auth);
-        } catch (Exception e) {
-            log.debug("Token invalido: {}", e.getMessage());
-        }
+            final String authHeader = request.getHeader("Authorization");
+            if (authHeader == null || !authHeader.startsWith(BEARER)) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+            String token = authHeader.substring(BEARER.length());
+            try {
+                JwtService.AuthenticatedUser user = jwtService.authenticate(token);
+                // El token se guarda como credencial: UserIdentityAdapter lo relee
+                // para resolver el userId y el email desde los claims.
+                UsernamePasswordAuthenticationToken auth =
+                        new UsernamePasswordAuthenticationToken(
+                                user.email() != null ? user.email() : String.valueOf(user.userId()),
+                                token,
+                                user.roles().stream()
+                                        .map(r -> new SimpleGrantedAuthority("ROLE_" + r))
+                                        .toList());
+                SecurityContextHolder.getContext().setAuthentication(auth);
+                TenantContext.set(user.institutionId(), user.campusId());
+            } catch (Exception e) {
+                log.debug("Token invalido: {}", e.getMessage());
+            }
 
-        filterChain.doFilter(request, response);
+            filterChain.doFilter(request, response);
+        } finally {
+            TenantContext.clear();
+        }
     }
 }
