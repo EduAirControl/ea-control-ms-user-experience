@@ -54,3 +54,20 @@ databaseChangeLog:
               DROP INDEX IF EXISTS user_experience.ix_favorites_classroom_id;
               DROP INDEX IF EXISTS user_experience.ix_favorites_user_id;
               DROP INDEX IF EXISTS user_experience.ix_user_preferences_user_id;
+
+  # 4) Replica de ambientes e idempotencia del consumidor de eventos de aula.
+  - changeSet:
+      id: ms-user-experience-004-messaging-replica
+      author: eduaircontrol
+      comment: Replica ambiente->institucion e inbox para eventos classroom (ADR-007/016).
+      changes:
+        - sqlFile:
+            path: db/changelog/canonical/03_tables/06_replicas/001_educational_environment.sql
+        - sqlFile:
+            path: db/changelog/canonical/03_tables/06_replicas/002_inbox_message.sql
+      rollback:
+        - sql:
+            dbms: postgresql
+            sql: |
+              DROP TABLE IF EXISTS user_experience.inbox_message;
+              DROP TABLE IF EXISTS user_experience.educational_environment;
