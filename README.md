@@ -1,10 +1,11 @@
 # ms-user-experience
 
-Microservicio de **preferencias e interacciones del usuario** (puerto `3006`,
+Microservicio de **preferencias y favoritos del usuario** (puerto `3006`,
 esquema PostgreSQL `user_experience`).
 
-Dueño de los datos de interaccion: preferencias, favoritos, ratings de ambientes
-y busquedas. No posee usuarios, ambientes ni variables: los referencia por UUID.
+Dueño de las preferencias y favoritos. No posee usuarios, ambientes ni variables:
+los referencia por UUID. Las APIs de ratings e historial de búsqueda fueron retiradas;
+sus filas históricas se conservan con nombres `legacy_*`.
 
 ## Contrato
 

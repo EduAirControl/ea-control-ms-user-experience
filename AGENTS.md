@@ -1,7 +1,7 @@
 # AGENTS.md — ms-user-experience
 
 Spring Boot 4.0.5 / Java 17 microservice, domain **user_experience**
-(preferences, favourites, ratings, searches). Package `com.eduaircontrol.userexperience`,
+(preferences and favorites). Package `com.eduaircontrol.userexperience`,
 port **3006**, PostgreSQL schema **`user_experience`**
 (DB `eduaircontrol_user_experience`). Governance:
 `../docs-ea-control/09-microservices/services/07-ms-user-experience/`.
@@ -18,7 +18,7 @@ docker compose up -d     # app :3006 + its own PostgreSQL on host :5436
 
 ## Notes
 
-- Domain modules at the root (`preferences`, `favorites`, `ratings`, `searches`)
+- Domain modules at the root (`preferences`, `favorites`)
   plus `infrastructure` (`web`, `backfill`) and `shared`.
 - Liquibase on startup (`src/main/resources/db/changelog/`); `ddl-auto=validate`.
   Tests run on **Testcontainers** (Postgres) — Docker Engine 29 needs

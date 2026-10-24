@@ -6,8 +6,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 /**
  * ms-user-experience: preferencias e interacciones del usuario.
  *
- * <p>Dueño de los datos de interaccion (preferencias, favoritos, ratings,
- * busquedas). No posee usuarios, ambientes ni variables: los referencia por UUID.
+ * <p>Dueño de las preferencias y favoritos de usuario. No posee usuarios,
+ * ambientes ni variables: los referencia por UUID.
  */
 @SpringBootApplication
 public class MsUserExperienceApplication {

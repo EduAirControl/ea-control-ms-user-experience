@@ -29,8 +29,6 @@ public class UxBackfillService {
         int total = 0;
         total += copyUserPreferences();
         total += copyFavorites();
-        total += copyRatings();
-        total += copySearches();
         total += copyNotificationState();
         log.info("Backfill UX completo: {} fila(s) copiadas", total);
         return total;
@@ -57,26 +55,6 @@ public class UxBackfillService {
                 SELECT favorite_id, user_id, classroom_id, variable_id, added_at
                 FROM ux.favorites
                 ON CONFLICT (favorite_id) DO NOTHING
-                """);
-    }
-
-    private int copyRatings() {
-        return jdbc.update("""
-                INSERT INTO user_experience.classroom_ratings
-                    (rating_id, user_id, classroom_id, score, comment, rated_at)
-                SELECT rating_id, user_id, classroom_id, score, comment, rated_at
-                FROM ux.classroom_ratings
-                ON CONFLICT (rating_id) DO NOTHING
-                """);
-    }
-
-    private int copySearches() {
-        return jdbc.update("""
-                INSERT INTO user_experience.searches
-                    (search_id, user_id, search_text, applied_filter, searched_at)
-                SELECT search_id, user_id, search_text, applied_filter, searched_at
-                FROM ux.searches
-                ON CONFLICT (search_id) DO NOTHING
                 """);
     }
 
