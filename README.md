@@ -1,10 +1,11 @@
 # ms-user-experience
 
-Microservicio de **preferencias e interacciones del usuario** (puerto `3006`,
+Microservicio de **preferencias y favoritos del usuario** (puerto `3006`,
 esquema PostgreSQL `user_experience`).
 
-Dueño de los datos de interaccion: preferencias, favoritos, ratings de ambientes
-y busquedas. No posee usuarios, ambientes ni variables: los referencia por UUID.
+Dueño de las preferencias y favoritos. No posee usuarios, ambientes ni variables:
+los referencia por UUID. Las APIs de ratings e historial de búsqueda fueron retiradas;
+sus filas históricas se conservan con nombres `legacy_*`.
 
 ## Contrato
 
@@ -12,9 +13,9 @@ y busquedas. No posee usuarios, ambientes ni variables: los referencia por UUID.
 
 ## Arranque local
 
-Requiere PostgreSQL en `localhost:5432` (BD `eduaircontrol_user_experience`). La
-autenticación usa RS256 vía el JWKS de `ms-security` (ADR-006): no hay secreto local,
-el token lo emite ms-security.
+Requires PostgreSQL on `localhost:5432` (database `eduaircontrol_user_experience`).
+Authentication is RS256 via the ms-security JWKS (ADR-006): there is no local secret.
+Environment variables live in `.env.example` (copy it to `.env` and adjust the values).
 
 ```bash
 # local (necesita PostgreSQL con la BD eduaircontrol_user_experience)
