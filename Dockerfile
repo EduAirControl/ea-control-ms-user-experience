@@ -35,3 +35,4 @@ HEALTHCHECK --interval=10s --timeout=3s --start-period=40s --retries=3 \
     CMD curl -fsS http://localhost:3006/health || exit 1
 
 ENTRYPOINT ["java", "-jar", "app.jar"]
+
