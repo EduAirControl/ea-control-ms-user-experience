@@ -6,31 +6,33 @@ COPY pom.xml .
 COPY .mvn .mvn
 COPY mvnw .
 
-RUN ./mvnw dependency:go-offline
+RUN sed -i 's/\r$//' mvnw && bash mvnw dependency:go-offline
 
 COPY src src
 
-RUN ./mvnw clean package -DskipTests
+RUN sed -i 's/\r$//' mvnw && bash mvnw clean package -DskipTests
 
 FROM eclipse-temurin:17-jre
 
-# curl para el HEALTHCHECK y ejecutar como usuario no-root.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl \
-    && rm -rf /var/lib/apt/lists/* \
-    && groupadd --gid 10001 app \
-    && useradd --uid 10001 --gid 10001 --system --shell /usr/sbin/nologin app
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-COPY --from=builder /app/target/*.jar app.jar
-RUN chown -R app:app /app
+RUN (getent group 1000 >/dev/null 2>&1 || groupadd -g 1000 appgroup) \
+ && (id -u 1000 >/dev/null 2>&1 || useradd -u 1000 -g 1000 -r -s /usr/sbin/nologin appuser) \
+ && chown -R 1000:1000 /app
 
-USER app
+COPY --from=builder /app/target/*.jar app.jar
+RUN chown 1000:1000 app.jar
+
+USER 1000
 
 EXPOSE 3006
 
-HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
+HEALTHCHECK --interval=10s --timeout=3s --start-period=40s --retries=3 \
     CMD curl -fsS http://localhost:3006/health || exit 1
 
 ENTRYPOINT ["java", "-jar", "app.jar"]
+
