@@ -7,7 +7,7 @@ services:
     environment:
       POSTGRES_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-eduaircontrol_user_experience}
       POSTGRES_USER: ${POSTGRES_USER:-user_experience_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-user_experience_pass}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD?}
       # Access tokens RS256 de ms-security (ADR-006). Con compose por servicio no hay
       # ms-security en la red: se apunta al host. Sobrescriba JWKS_URI si lo hay.
       JWKS_URI: ${JWKS_URI:-http://host.docker.internal:8081/api/v1/auth/jwks}
@@ -33,7 +33,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-eduaircontrol_user_experience}
       POSTGRES_USER: ${POSTGRES_USER:-user_experience_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-user_experience_pass}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD?}
     ports:
       - "5436:5432"
     volumes:
